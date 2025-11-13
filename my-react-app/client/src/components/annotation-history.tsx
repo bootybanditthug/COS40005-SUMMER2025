@@ -115,18 +115,7 @@ export default function AnnotationHistory({
 
                 {/* Buttons */}
                 <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 text-xs"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onVersionSelect(version);
-                    }}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Preview
-                  </Button>
+                  
 
                   {version.version !== currentVersion && (
                     <Button
