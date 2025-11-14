@@ -38,7 +38,8 @@ class AnnotationVersion(BaseModel):
     createdAt: datetime = datetime.now()
 
 class ForumAuthor(BaseModel):
-    name: str
+    user_id: Optional[str] = None
+    name: Optional[str] = None
     avatarUrl: Optional[str] = None
 
 class ForumReply(BaseModel):
@@ -53,11 +54,11 @@ class ForumThread(BaseModel):
     author: ForumAuthor
     title: str
     content: str
-    timestamp: datetime = Field(default_factory=datetime.now)
-    tags: List[str] = []
-    replies: List[ForumReply] = []
+    tags: List[str] = Field(default_factory=list)
     imageUrl: Optional[str] = None
+    replies: List[ForumReply] = Field(default_factory=list)
+    timestamp: datetime = Field(default_factory=datetime.now)
 
     class Config:
-        validate_by_name = True
+        populate_by_name = True
         from_attributes = True

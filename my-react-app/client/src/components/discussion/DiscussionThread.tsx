@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import ThreadItem from './ThreadItem';
 import ReplyBox from './ReplyBox';
-import { Thread, Tag, Reply } from './types';
+import { Thread, Reply } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,59 +20,114 @@ const DiscussionThread: React.FC = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostMessage, setNewPostMessage] = useState('');
-  const [newPostTags, setNewPostTags] = useState<Tag[]>([]);
+  const [newPostTags, setNewPostTags] = useState<string[]>([]);
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTag, setSelectedTag] = useState<Tag | 'all'>('all');
+  const [selectedTag, setSelectedTag] = useState<string | 'all'>('all');
 
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 
-  const handleCreatePost = () => {
+  const [availableTags, setAvailableTags] = useState<string[]>(['TestTag1', 'TestTag2']);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newCustomTag, setNewCustomTag] = useState('');
+  
+  const [newPostImageFile, setNewPostImageFile] = useState<File | null>(null);
+
+  const handleCreatePost = async () => {
     if (!newPostTitle || !newPostMessage || !user) return;
 
-    const newThread: Thread = {
-      id: crypto.randomUUID(),
-      author: {
-        name: user.firstName ? `${user.firstName} ${user.lastName}` : 'Anonymous User',
-        avatarUrl: `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`,
-      },
-      title: newPostTitle,
-      content: newPostMessage,
-      timestamp: new Date().toISOString(),
-      tags: newPostTags,
-      replies: [],
-      imageUrl: newPostImagePreview,
-    };
+    const formData = new FormData();
+    formData.append("user_id", user.user_id!);
+    formData.append("title", newPostTitle);
+    formData.append("content", newPostMessage);
+    formData.append("tags", newPostTags.join(","));
+    if (newPostImagePreview && newPostImageFile) {
+      formData.append("image", newPostImageFile);
+    }
 
-    setThreads([newThread, ...threads]);
-    setNewPostTitle('');
-    setNewPostMessage('');
+    try {
+      const res = await fetch("http://127.0.0.1:8000/forum/create", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+      if (result.status === "success") {
+        if (result.thread) {
+          setThreads((prev) => [result.thread, ...prev]);
+        }
+      }
+    } catch (err) {
+      console.error("Error creating thread:", err);
+    }
+
+    setNewPostTitle("");
+    setNewPostMessage("");
     setNewPostTags([]);
     setNewPostImagePreview(null);
     setIsCreatingPost(false);
+    setIsAddingTag(false);
+    setNewCustomTag('');
   };
-  
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setNewPostImageFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewPostImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setNewPostImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
+
+  useEffect(() => {
+  const fetchThreads = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/forum");
+      const data = await res.json();
+      setThreads(data);
+    } catch (err) {
+      console.error("Failed to fetch threads:", err);
+    }
+  };
+
+  fetchThreads();
+}, []);
 
   const handleRemoveImage = () => {
     setNewPostImagePreview(null);
   };
 
-  const handleTagToggle = (tag: Tag) => {
+  const handleTagToggle = (tag: string) => {
     setNewPostTags((prevTags) =>
       prevTags.includes(tag)
         ? prevTags.filter((t) => t !== tag)
         : [...prevTags, tag]
     );
+  };
+  
+  const handleAddNewTag = (tagValue: string) => {
+    const trimmedTag = tagValue.trim();
+    if (trimmedTag && trimmedTag.length <= 10) {
+      if (!availableTags.includes(trimmedTag)) {
+        setAvailableTags((prev) => [...prev, trimmedTag]);
+      }
+      if (!newPostTags.includes(trimmedTag)) {
+        setNewPostTags((prev) => [...prev, trimmedTag]);
+      }
+      setNewCustomTag('');
+    }
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleAddNewTag(newCustomTag);
+    }
+  };
+
+  const handleTagInputBlur = () => {
+    setIsAddingTag(false);
+    setNewCustomTag('');
   };
 
   const filteredThreads = useMemo(() => {
@@ -83,7 +138,7 @@ const DiscussionThread: React.FC = () => {
       const authorName = thread.author?.name || '';
       
       const tagMatch =
-        selectedTag === 'all' || tags.includes(selectedTag as Tag);
+        selectedTag === 'all' || (tags as string[]).includes(selectedTag);
 
       const searchMatch =
         searchTerm.trim() === '' ||
@@ -100,27 +155,35 @@ const DiscussionThread: React.FC = () => {
     return threads.find((t) => t.id === selectedThreadId);
   }, [threads, selectedThreadId]);
 
-  const handlePostReply = (replyContent: string) => {
+  const handlePostReply = async (replyContent: string) => {
     if (!selectedThreadId || !user) return;
 
-    const newReply: Reply = {
-      id: crypto.randomUUID(),
-      author: {
-        name: user.firstName ? `${user.firstName} ${user.lastName}` : 'Anonymous User',
-        avatarUrl: `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`,
-      },
-      content: replyContent,
-      timestamp: new Date().toISOString(),
-    };
+    const formData = new FormData();
+    formData.append("thread_id", selectedThreadId);
+    formData.append("user_id", user.user_id!);
+    formData.append("content", replyContent);
 
-    setThreads((prevThreads) =>
-      prevThreads.map((thread) =>
-        thread.id === selectedThreadId
-          ? { ...thread, replies: [...(thread.replies || []), newReply] } 
-          : thread
-      )
-    );
+    try {
+      const res = await fetch("http://127.0.0.1:8000/forum/reply", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+
+      if (result.status === "success") {
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === selectedThreadId
+              ? { ...t, replies: [...(t.replies || []), result.reply] }
+              : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error posting reply:", err);
+    }
   };
+
   
   const getInitials = (name: string) => {
     if (!name) return '??';
@@ -233,39 +296,59 @@ const DiscussionThread: React.FC = () => {
                     <Label className="mb-2 block font-medium">
                       Tags
                     </Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <TagIcon className="h-4 w-4 text-muted-foreground" />
-                      <Button
-                        variant={newPostTags.includes('TestTag1') ? 'default' : 'outline'}
-                        onClick={() => handleTagToggle('TestTag1')}
-                        size="sm"
-                        className={`rounded-full ${
-                          newPostTags.includes('TestTag1')
-                            ? 'border border-transparent'
-                            : ''
-                        }`}
-                      >
-                        TestTag1
-                      </Button>
-                      <Button
-                        variant={newPostTags.includes('TestTag2') ? 'default' : 'outline'}
-                        onClick={() => handleTagToggle('TestTag2')}
-                        size="sm"
-                        className={`rounded-full ${
-                          newPostTags.includes('TestTag2')
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white border border-transparent'
-                            : ''
-                        }`}
-                      >
-                        TestTag2
-                      </Button>
+                      
+                      {availableTags.map((tag) => (
+                        <Button
+                          key={tag}
+                          variant={newPostTags.includes(tag) ? 'default' : 'outline'}
+                          onClick={() => handleTagToggle(tag)}
+                          size="sm"
+                          className={`rounded-full ${
+                            newPostTags.includes(tag) && tag === 'TestTag2'
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white border border-transparent'
+                              : newPostTags.includes(tag)
+                              ? 'border border-transparent'
+                              : ''
+                          }`}
+                        >
+                          {tag}
+                        </Button>
+                      ))}
+                      
+                      {!isAddingTag ? (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="rounded-full h-9 w-9"
+                          onClick={() => setIsAddingTag(true)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Input
+                          type="text"
+                          placeholder="Tag..."
+                          className="h-9 text-sm w-24"
+                          value={newCustomTag}
+                          onChange={(e) => setNewCustomTag(e.target.value)}
+                          onKeyDown={handleTagInputKeyDown}
+                          onBlur={handleTagInputBlur}
+                          autoFocus
+                          maxLength={9}
+                        />
+                      )}
                     </div>
                   </div>
+
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" onClick={() => {
                     setIsCreatingPost(false);
                     setNewPostImagePreview(null);
+                    setIsAddingTag(false);
+                    setNewCustomTag('');
                   }}>
                     Cancel
                   </Button>
@@ -278,25 +361,26 @@ const DiscussionThread: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             variant={selectedTag === 'all' ? 'default' : 'outline'}
             onClick={() => setSelectedTag('all')}
+            size="sm"
+            className="rounded-full"
           >
             All Posts
           </Button>
-          <Button
-            variant={selectedTag === 'TestTag1' ? 'default' : 'outline'}
-            onClick={() => setSelectedTag('TestTag1')}
-          >
-            TestTag1
-          </Button>
-          <Button
-            variant={selectedTag === 'TestTag2' ? 'default' : 'outline'}
-            onClick={() => setSelectedTag('TestTag2')}
-          >
-            TestTag2
-          </Button>
+          {availableTags.map((tag) => (
+            <Button
+              key={tag}
+              variant={selectedTag === tag ? 'default' : 'outline'}
+              onClick={() => setSelectedTag(tag)}
+              size="sm"
+              className="rounded-full"
+            >
+              {tag}
+            </Button>
+          ))}
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto flex-1">
@@ -365,7 +449,7 @@ const DiscussionThread: React.FC = () => {
                     <img 
                       src={selectedThread.imageUrl} 
                       alt="Post attachment"
-                      className="mt-4 w-full max-w-lg rounded-lg border"
+                      className="mt-4 w-16/h max-w-lg rounded-lg border"
                     />
                   )}
                 </div>

@@ -54,34 +54,41 @@ const ThreadItem: React.FC<ThreadItemProps> = ({ thread, onSelectThread, isSelec
       }`}
       onClick={() => thread.id && onSelectThread(thread.id)}
     >
-      <CardHeader className="pb-2">
-        <div className="flex gap-2 mb-2">
-          {(thread.tags || []).map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-            >
-              {tag}
-            </Badge>
-          ))}
+      <div className="flex flex-row items-start">
+        <div className="flex-1 min-w-0">
+          <CardHeader className="pb-2">
+            <div className="flex gap-2 mb-2">
+              {(thread.tags || []).map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            <CardTitle className="text-xl">{thread.title || 'Untitled Post'}</CardTitle>
+          </CardHeader>
+          
+          <CardContent className="py-2">
+            <CardDescription>
+              <span className="font-semibold text-primary">{thread.author?.name || 'Anonymous User'}</span>
+              : {truncatedContent}
+            </CardDescription>
+          </CardContent>
         </div>
-        <CardTitle className="text-xl">{thread.title || 'Untitled Post'}</CardTitle>
-      </CardHeader>
-      <CardContent className="py-2">
+
         {thread.imageUrl && (
-          <div className="mt-2 mb-4">
+          <div className="p-6 pl-0">
             <img 
               src={thread.imageUrl} 
               alt="Thread attachment" 
-              className="rounded-lg border object-cover h-48 w-full" 
+              className="rounded-md border object-cover h-20 w-20" 
             />
           </div>
         )}
-        <CardDescription>
-          <span className="font-semibold text-primary">{thread.author?.name || 'Anonymous User'}</span>
-          : {truncatedContent}
-        </CardDescription>
-      </CardContent>
+      </div>
+
       <CardFooter className="pt-2 pb-4 flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center space-x-1">
           <MessageSquare size={14} />

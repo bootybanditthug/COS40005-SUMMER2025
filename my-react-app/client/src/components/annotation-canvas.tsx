@@ -377,16 +377,6 @@ export default function AnnotationCanvas({
         data-testid="annotation-overlay"
       />
 
-      <div className="absolute top-1/4 left-1/3 w-20 h-20 border-2 border-red-500 rounded-full bg-red-500 bg-opacity-20 cursor-pointer">
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-2 py-1 rounded text-xs">
-          Lesion Area
-        </div>
-      </div>
-      <div className="absolute top-1/2 right-1/4 w-16 h-12 border-2 border-blue-500 bg-blue-500 bg-opacity-20 cursor-pointer">
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded text-xs">
-          Ventricle
-        </div>
-      </div>
 
       <div className="absolute top-4 right-4 flex space-x-2">
         <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full">
