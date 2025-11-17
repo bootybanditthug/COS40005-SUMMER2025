@@ -620,6 +620,22 @@ export default function StudentDashboard() {
               </Card>
             </div>
           )}
+          {activeView === "settings" && (
+            <div className="p-6 space-y-6" data-testid="view-settings">
+              <h2 className="text-2xl font-bold mb-4">Account Settings</h2>
+
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Manage your profile information.</p>
+                  </div>
+                  <Button onClick={() => setLocation("/settings")} className="w-full">
+                    Open Settings Page
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </main>
       </div>
 

@@ -42,52 +42,52 @@ const VALID_TABS: InstructorView[] = [
 
 export default function InstructorDashboard() {
   // --- Grading mock data (replace with BE later)
-type Submission = {
-  id: string;
-  caseId: string;
-  caseTitle: string;
-  studentId: string;
-  status: "submitted" | "graded";
-  score?: number;
-  updatedAt: string;
-};
+  type Submission = {
+    id: string;
+    caseId: string;
+    caseTitle: string;
+    studentId: string;
+    status: "submitted" | "graded";
+    score?: number;
+    updatedAt: string;
+  };
 
-const allSubs: Submission[] = [
-  { id:"sub-1", caseId:"case-1", caseTitle:"Brain MRI - Stroke", studentId:"david.tran", status:"submitted", score:8, updatedAt:"2025-10-10T10:00:00Z" },
-  { id:"sub-2", caseId:"case-1", caseTitle:"Brain MRI - Stroke", studentId:"emma.wilson", status:"submitted", score:7, updatedAt:"2025-10-11T08:00:00Z" },
-  { id:"sub-3", caseId:"case-2", caseTitle:"Chest X-Ray Analysis", studentId:"james.lee",  status:"graded",   score:9, updatedAt:"2025-10-12T12:00:00Z" },
-];
+  const allSubs: Submission[] = [
+    { id: "sub-1", caseId: "case-1", caseTitle: "Brain MRI - Stroke", studentId: "david.tran", status: "submitted", score: 8, updatedAt: "2025-10-10T10:00:00Z" },
+    { id: "sub-2", caseId: "case-1", caseTitle: "Brain MRI - Stroke", studentId: "emma.wilson", status: "submitted", score: 7, updatedAt: "2025-10-11T08:00:00Z" },
+    { id: "sub-3", caseId: "case-2", caseTitle: "Chest X-Ray Analysis", studentId: "james.lee", status: "graded", score: 9, updatedAt: "2025-10-12T12:00:00Z" },
+  ];
 
-type Mode = "one" | "group";
-const [mode, setMode] = useState<Mode>("one");
-const [query, setQuery] = useState("");
-const [activeIds, setActiveIds] = useState<string[]>([]);
+  type Mode = "one" | "group";
+  const [mode, setMode] = useState<Mode>("one");
+  const [query, setQuery] = useState("");
+  const [activeIds, setActiveIds] = useState<string[]>([]);
 
-const filtered = useMemo(() => {
-  const q = query.toLowerCase();
-  return allSubs.filter(s => s.studentId.toLowerCase().includes(q) || s.caseTitle.toLowerCase().includes(q));
-}, [query]);
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return allSubs.filter(s => s.studentId.toLowerCase().includes(q) || s.caseTitle.toLowerCase().includes(q));
+  }, [query]);
 
-const selected = useMemo(
-  () => filtered.find(s => s.id === (activeIds[0] ?? "")) ?? filtered[0],
-  [filtered, activeIds]
-);
+  const selected = useMemo(
+    () => filtered.find(s => s.id === (activeIds[0] ?? "")) ?? filtered[0],
+    [filtered, activeIds]
+  );
 
-const activeGroup = useMemo(
-  () => filtered.filter(s => activeIds.includes(s.id)).slice(0,4),
-  [filtered, activeIds]
-);
+  const activeGroup = useMemo(
+    () => filtered.filter(s => activeIds.includes(s.id)).slice(0, 4),
+    [filtered, activeIds]
+  );
 
-const onPick = (id: string) => setActiveIds(prev => (mode === "one" ? [id] : (prev.includes(id) ? prev : [...prev, id].slice(-4))));
+  const onPick = (id: string) => setActiveIds(prev => (mode === "one" ? [id] : (prev.includes(id) ? prev : [...prev, id].slice(-4))));
 
-const saveGrade = (subId: string) => (score: number/*, rows, feedback*/) => {
-  // TODO: POST /api/submissions/:id/grade
-  alert(`Saved grade ${score} for ${subId} (mock)`);
-};
+  const saveGrade = (subId: string) => (score: number/*, rows, feedback*/) => {
+    // TODO: POST /api/submissions/:id/grade
+    alert(`Saved grade ${score} for ${subId} (mock)`);
+  };
 
-// derive case + annotation for selected (1–1 mode)
-const selectedCase = mockCases.find(c => c.id === selected?.caseId);
-const selectedAnn  = selected ? useAnnotation(selected.caseId, selected.studentId) : null;
+  // derive case + annotation for selected (1–1 mode)
+  const selectedCase = mockCases.find(c => c.id === selected?.caseId);
+  const selectedAnn = selected ? useAnnotation(selected.caseId, selected.studentId) : null;
 
   const [, setLocation] = useLocation();
   const { user, logout, isLoading } = useAuth();
@@ -232,8 +232,8 @@ const selectedAnn  = selected ? useAnnotation(selected.caseId, selected.studentI
                   key={item.id}
                   variant="ghost"
                   className={`w-full justify-start hover:bg-transparent ${isActive
-                      ? "text-primary hover:text-primary"
-                      : "text-foreground hover:text-foreground"
+                    ? "text-primary hover:text-primary"
+                    : "text-foreground hover:text-foreground"
                     }`}
                   onClick={() => setActiveView(item.id as InstructorView)}
                 >
@@ -336,128 +336,128 @@ const selectedAnn  = selected ? useAnnotation(selected.caseId, selected.studentI
           {/* ———————————————————————————— */}
 
           {activeView === "grading" && (
-  <div className="p-6" data-testid="view-grading">
-    {/* Header */}
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-2xl font-bold">Grading</h2>
-      <div className="flex gap-2">
-        <Button variant={mode==="one" ? "default" : "secondary"} onClick={()=>setMode("one")}>1–1</Button>
-        <Button variant={mode==="group" ? "default" : "secondary"} onClick={()=>setMode("group")}>Group</Button>
-      </div>
-    </div>
+            <div className="p-6" data-testid="view-grading">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Grading</h2>
+                <div className="flex gap-2">
+                  <Button variant={mode === "one" ? "default" : "secondary"} onClick={() => setMode("one")}>1–1</Button>
+                  <Button variant={mode === "group" ? "default" : "secondary"} onClick={() => setMode("group")}>Group</Button>
+                </div>
+              </div>
 
-    {/* Submissions list */}
-    <Card className="mb-4">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Submissions</h3>
-          <Input placeholder="Search by student/case…" className="max-w-xs" value={query} onChange={e=>setQuery(e.target.value)} />
-        </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[240px] overflow-auto">
-          {filtered.map(s => (
-            <Button
-              key={s.id}
-              variant={activeIds.includes(s.id) ? "default" : "ghost"}
-              className="justify-start"
-              onClick={()=> onPick(s.id)}
-            >
-              {s.studentId} — {s.caseTitle} {s.score!=null ? `(Score ${s.score})` : `(${s.status})`}
-            </Button>
-          ))}
-          {filtered.length===0 && <div className="text-sm text-muted-foreground p-2">No submissions</div>}
-        </div>
-      </CardContent>
-    </Card>
-
-    {/* ONE-ON-ONE */}
-    {mode === "one" && selected && (
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="md:col-span-2">
-          <CardContent className="p-4 space-y-2">
-            <div className="text-sm text-muted-foreground">
-              {selected.studentId} • {selected.caseTitle}
-            </div>
-
-            {selectedAnn && (
-              <AnnotationCanvas
-                imageUrl={selectedCase?.imageUrl}
-                annotation={selectedAnn}
-                peerAnnotations={selectedAnn.peerAnnotations}
-                versionOverlay={selectedAnn.versionOverlay}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        <RubricPanel onSubmit={(score)=> saveGrade(selected.id)(score)} />
-      </div>
-    )}
-
-
-    {/* GROUP COMPARE */}
-    {mode === "group" && (
-      <div className="grid md:grid-cols-2 gap-4">
-        {activeGroup.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            Select 2–4 submissions from the list to compare.
-          </div>
-        ) : activeGroup.map(s => {
-            const caseObj = mockCases.find(c => c.id === s.caseId);
-            const ann = useAnnotation(s.caseId, s.studentId);
-            return (
-              <Card key={s.id}>
-                <CardContent className="p-4 space-y-2">
+              {/* Submissions list */}
+              <Card className="mb-4">
+                <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">{s.studentId}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {s.score!=null ? `Score ${s.score}` : s.status}
-                    </div>
+                    <h3 className="font-semibold">Submissions</h3>
+                    <Input placeholder="Search by student/case…" className="max-w-xs" value={query} onChange={e => setQuery(e.target.value)} />
                   </div>
-                  <AnnotationCanvas
-                    imageUrl={caseObj?.imageUrl}
-                    annotation={ann}
-                    peerAnnotations={ann.peerAnnotations}
-                    versionOverlay={ann.versionOverlay}
-                  />
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[240px] overflow-auto">
+                    {filtered.map(s => (
+                      <Button
+                        key={s.id}
+                        variant={activeIds.includes(s.id) ? "default" : "ghost"}
+                        className="justify-start"
+                        onClick={() => onPick(s.id)}
+                      >
+                        {s.studentId} — {s.caseTitle} {s.score != null ? `(Score ${s.score})` : `(${s.status})`}
+                      </Button>
+                    ))}
+                    {filtered.length === 0 && <div className="text-sm text-muted-foreground p-2">No submissions</div>}
+                  </div>
                 </CardContent>
               </Card>
-            );
-          })
-        }
-      </div>
-    )}
-  </div>
-)}
-          {activeView === "analytics" && (
-  <div className="p-6 space-y-6" data-testid="view-analytics">
-    <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold">Homework Builder</h2>
-      <span className="text-muted-foreground text-sm">
-        Analyze class results and create personalized homework.
-      </span>
-    </div>
 
-    {/* (2) Homework Builder */}
-            <HomeworkPrepPanel
-              cases={mockCases.map(c => ({ id: c.id, title: c.title }))}
-              stats={{
-                avgScore: Math.round(
-                  (allSubs.reduce((a,b)=> a + (b.score ?? 0), 0) / Math.max(1, allSubs.length))*10
-                )/10,
-                commonMistakes: ["Overlapping regions", "Incorrect boundary", "Missed edema area"],
-                skillGaps: ["Anatomical localization", "Contrast handling", "Annotation labeling"],
-              }}
-              onPublish={(payload) => {
-                console.log("publish payload", payload);
-                alert(`Homework published (mock):
+              {/* ONE-ON-ONE */}
+              {mode === "one" && selected && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Card className="md:col-span-2">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        {selected.studentId} • {selected.caseTitle}
+                      </div>
+
+                      {selectedAnn && (
+                        <AnnotationCanvas
+                          imageUrl={selectedCase?.imageUrl}
+                          annotation={selectedAnn}
+                          peerAnnotations={selectedAnn.peerAnnotations}
+                          versionOverlay={selectedAnn.versionOverlay}
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <RubricPanel onSubmit={(score) => saveGrade(selected.id)(score)} />
+                </div>
+              )}
+
+
+              {/* GROUP COMPARE */}
+              {mode === "group" && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {activeGroup.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      Select 2–4 submissions from the list to compare.
+                    </div>
+                  ) : activeGroup.map(s => {
+                    const caseObj = mockCases.find(c => c.id === s.caseId);
+                    const ann = useAnnotation(s.caseId, s.studentId);
+                    return (
+                      <Card key={s.id}>
+                        <CardContent className="p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium">{s.studentId}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {s.score != null ? `Score ${s.score}` : s.status}
+                            </div>
+                          </div>
+                          <AnnotationCanvas
+                            imageUrl={caseObj?.imageUrl}
+                            annotation={ann}
+                            peerAnnotations={ann.peerAnnotations}
+                            versionOverlay={ann.versionOverlay}
+                          />
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                  }
+                </div>
+              )}
+            </div>
+          )}
+          {activeView === "analytics" && (
+            <div className="p-6 space-y-6" data-testid="view-analytics">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Homework Builder</h2>
+                <span className="text-muted-foreground text-sm">
+                  Analyze class results and create personalized homework.
+                </span>
+              </div>
+
+              {/* (2) Homework Builder */}
+              <HomeworkPrepPanel
+                cases={mockCases.map(c => ({ id: c.id, title: c.title }))}
+                stats={{
+                  avgScore: Math.round(
+                    (allSubs.reduce((a, b) => a + (b.score ?? 0), 0) / Math.max(1, allSubs.length)) * 10
+                  ) / 10,
+                  commonMistakes: ["Overlapping regions", "Incorrect boundary", "Missed edema area"],
+                  skillGaps: ["Anatomical localization", "Contrast handling", "Annotation labeling"],
+                }}
+                onPublish={(payload) => {
+                  console.log("publish payload", payload);
+                  alert(`Homework published (mock):
         Case: ${payload.caseId}
         Due: ${payload.dueAtISO}
         Audience: ${payload.audience}
         Checklist: ${payload.autoChecklist.join(" | ")}`);
-              }}
-            />
-          </div>
-        )}
+                }}
+              />
+            </div>
+          )}
 
 
           {/* CASE MANAGEMENT VIEW */}
@@ -508,6 +508,23 @@ const selectedAnn  = selected ? useAnnotation(selected.caseId, selected.studentI
                 isOpen={showUploadModal}
                 onClose={() => setShowUploadModal(false)}
               />
+            </div>
+          )}
+          {activeView === "settings" && (
+            <div className="p-6 space-y-6" data-testid="view-settings">
+              <h2 className="text-2xl font-bold mb-4">Account Settings</h2>
+
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Manage instructor profile, theme, and preferences.
+                  </p>
+
+                  <Button onClick={() => setLocation("/settings")} className="w-full">
+                    Open Settings Page
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
         </main>
