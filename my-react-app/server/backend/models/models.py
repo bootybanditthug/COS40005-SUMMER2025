@@ -62,3 +62,23 @@ class ForumThread(BaseModel):
     class Config:
         populate_by_name = True
         from_attributes = True
+
+class UploadedFile(BaseModel):
+    name: str
+    url: str
+    type: str
+
+class HomeworkSubmission(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    case_id: str
+    user_id: str
+    notes: Optional[str] = None
+    files: List[UploadedFile] = Field(default_factory=list)
+    status: Literal["none", "grading", "graded"] = "grading"
+    score: Optional[int] = None
+    submitted_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        validate_by_name = True
+        from_attributes = True

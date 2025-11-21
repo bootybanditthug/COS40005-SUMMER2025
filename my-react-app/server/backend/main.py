@@ -5,7 +5,7 @@ import random
 from pathlib import Path
 from core.security import hash_password
 from fastapi.staticfiles import StaticFiles
-from routes import auth, admin, online, annotations, user, ws_routes, forum
+from routes import auth, admin, online, annotations, user, ws_routes, forum, homework
 
 app = FastAPI()
 
@@ -24,6 +24,7 @@ app.include_router(user.router)
 app.include_router(annotations.router)
 app.include_router(ws_routes.router)
 app.include_router(forum.router)
+app.include_router(homework.router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 

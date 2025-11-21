@@ -70,16 +70,47 @@ const onUpload = async () => {
   const ups: Uploaded[] = Array.from(files).map((f) => ({
     name: f.name,
     type: f.type || "application/octet-stream",
-    url: URL.createObjectURL(f), // mock preview; BE sẽ trả URL thật
+    url: URL.createObjectURL(f),
   }));
   setUploaded((prev) => [...prev, ...ups]);
   setFiles([]);
 };
 
 const onSubmit = async () => {
-  // TODO: POST /api/submissions?caseId=<caseId>  body: { notes: note, files: uploaded }
-  alert("Submitted/Updated (mock). Kết nối backend sau.");
-  mySubmissionByCase[caseId] = { status: "grading", notes: note, files: uploaded };
+  try {
+    const formData = new FormData();
+    formData.append("case_id", caseId);
+    formData.append("user_id", user?.user_id || "");
+    if (note) {
+      formData.append("notes", note);
+    }
+    
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const response = await fetch("/submissions", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit homework");
+    }
+
+    const result = await response.json();
+    
+    if (result.submission && result.submission.files) {
+      setUploaded(result.submission.files);
+    }
+    
+    setFiles([]);
+    alert("Homework submitted successfully!");
+    mySubmissionByCase[caseId] = { status: "grading", notes: note, files: result.submission?.files || uploaded };
+  } catch (error) {
+    console.error("Error submitting homework:", error);
+    alert("Failed to submit homework. Please try again.");
+  }
 };
 
   // Heartbeat and presence
