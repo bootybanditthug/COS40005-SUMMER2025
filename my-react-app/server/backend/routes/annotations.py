@@ -6,8 +6,6 @@ from models.models import Annotation, AnnotationVersion
 
 router = APIRouter(prefix="/annotations", tags=["Annotations"])
 
-
-# --- Save a new annotation (optional direct save) ---
 @router.post("/")
 async def save_annotation(annotation: Annotation):
     annotation_dict = annotation.model_dump()

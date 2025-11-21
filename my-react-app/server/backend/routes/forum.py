@@ -86,8 +86,14 @@ async def create_thread(
         thread.model_dump(by_alias=True, exclude_none=True)
     )
 
-    thread.id = str(result.inserted_id)
-    return JSONResponse(status_code=200, content={"status": "success", "thread": jsonable_encoder(thread)})
+
+    response_thread = thread.model_dump()
+    response_thread["id"] = str(result.inserted_id)
+    
+    if "_id" in response_thread:
+        del response_thread["_id"]
+
+    return JSONResponse(status_code=200, content={"status": "success", "thread": jsonable_encoder(response_thread)})
 
 
 @router.post("/reply")

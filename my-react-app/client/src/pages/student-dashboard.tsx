@@ -183,7 +183,6 @@ export default function StudentDashboard() {
     { id: "annotations", label: "My Annotations", icon: Edit },
     { id: "collaboration", label: "Forums", icon: Users },
     { id: "progress", label: "Progress", icon: ChartLine },
-    { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
   const handleLogout = () => {

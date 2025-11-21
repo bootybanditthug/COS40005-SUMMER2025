@@ -134,7 +134,6 @@ export default function InstructorDashboard() {
     { id: "grading", label: "Grading", icon: ClipboardCheck },
     { id: "analytics", label: "Homework Builder", icon: LineChart },
     { id: "cases", label: "Case Management", icon: FolderOpen },
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const handleLogout = () => {
