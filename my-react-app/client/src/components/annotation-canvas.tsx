@@ -377,7 +377,10 @@ export default function AnnotationCanvas({
         data-testid="annotation-overlay"
       />
 
+<<<<<<< HEAD
       
+=======
+>>>>>>> ad41307f8f1ca60b90d398ce8d567806ff677d2e
 
       <div className="absolute top-4 right-4 flex space-x-2">
         <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-full">

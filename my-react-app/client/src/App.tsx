@@ -14,6 +14,7 @@ import AdminAccounts from "@/pages/admin-accounts";
 import AIPlayground from "@/pages/ai-playground";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Home from "@/pages/home";
+import SettingsPage from "@/pages/settings";
 
 interface RouteProps {
   component: React.ComponentType<any>;
@@ -78,6 +79,7 @@ function Router() {
       <ProtectedRoute path="/student" component={StudentDashboard} />
       <ProtectedRoute path="/instructor" component={InstructorDashboard} />
       <ProtectedRoute path="/annotation/:caseId" component={AnnotationView} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
 
       <Route component={NotFound} />
     </Switch>

@@ -1,116 +1,145 @@
+import os
+from pathlib import Path
+from datetime import datetime
+from typing import Optional
+from fastapi.encoders import jsonable_encoder
+from bson import ObjectId
+
 from fastapi import APIRouter, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
-from datetime import datetime
-from bson import ObjectId
-from pathlib import Path
-import shutil
-import os
 
-from db.connection import forum_collection
+from db.connection import users_collection, forum_collection
+from models.models import ForumThread, ForumReply, ForumAuthor 
 
-router = APIRouter(prefix="/api/forum", tags=["Forum"])
+router = APIRouter(prefix="/forum", tags=["Forum"])
+
+BASE_UPLOAD_DIR = Path("uploads")
+
+def serialize_doc(doc):
+    """Convert MongoDB _id to string and handle nested replies."""
+    if not doc:
+        return doc
+    doc["id"] = str(doc.get("_id"))
+    doc.pop("_id", None)
+
+    # Ensure replies and author fields are serializable
+    if "replies" in doc:
+        for reply in doc["replies"]:
+            if isinstance(reply.get("id"), ObjectId):
+                reply["id"] = str(reply["id"])
+    return doc
+
+@router.get("")
+async def get_all_threads():
+    """Fetch all forum threads sorted by latest first."""
+    threads = []
+    async for thread in forum_collection.find().sort("timestamp", -1):
+        threads.append(serialize_doc(thread))
+    return threads
 
 
 @router.post("/create")
 async def create_thread(
+    user_id: str = Form(...),
     title: str = Form(...),
     content: str = Form(...),
-    authorId: str = Form(...),
-    authorName: str = Form(...),
-    avatarUrl: str = Form(...),
-    tags: str = Form("[]"),
-    image: UploadFile | None = None
+    tags: str = Form(""),
+    image: Optional[UploadFile] = None,
 ):
-    try:
-        user_folder = Path(f"/uploads/{authorId}")
-        user_folder.mkdir(parents=True, exist_ok=True)
+    """Create a new thread with optional image upload."""
 
-        image_path = None
-        if image:
-            filename = f"forum_post_{datetime.now().timestamp()}_{image.filename}"
-            image_path = user_folder / filename
-            with open(image_path, "wb") as f:
-                shutil.copyfileobj(image.file, f)
-            image_path = str(image_path)
-            image_path = f"server/backend" / image_path
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        thread = {
-            "title": title,
-            "content": content,
-            "tags": eval(tags) if tags else [],
-            "author": {
-                "id": authorId,
-                "name": authorName,
-                "avatarUrl": avatarUrl
-            },
-            "imageUrl": image_path,
-            "timestamp": datetime.now(),
-            "replies": []
-        }
+    user_folder = BASE_UPLOAD_DIR / str(user_id)
+    user_folder.mkdir(parents=True, exist_ok=True)
 
-        result = await forum_collection.insert_one(thread)
-        thread["_id"] = str(result.inserted_id)
-        return thread
+    image_url = None
+    if image:
+        ext = os.path.splitext(image.filename)[1]
+        filename = f"forum_post_{int(datetime.now().timestamp())}{ext}"
+        file_path = user_folder / filename
+        with open(file_path, "wb") as f:
+            f.write(await image.read())
+        image_url = f"http://127.0.0.1:8000/uploads/{user_id}/{filename}"
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
 
-@router.get("/threads")
-async def get_threads():
-    threads = await forum_collection.find({}).sort("timestamp", -1).to_list(None)
-    for t in threads:
-        t["id"] = str(t["_id"])
-        del t["_id"]
-    return threads
+    author = ForumAuthor(
+        user_id=str(user["_id"]),
+        name=f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
+        avatarUrl=None,
+    )
 
-@router.get("/thread/{thread_id}")
-async def get_thread(thread_id: str):
-    from bson import ObjectId
-    thread = await forum_collection.find_one({"_id": ObjectId(thread_id)})
-    if not thread:
-        raise HTTPException(status_code=404, detail="Thread not found")
-    thread["id"] = str(thread["_id"])
-    del thread["_id"]
-    return thread
+    thread = ForumThread(
+        author=author,
+        title=title,
+        content=content,
+        tags=tags_list,
+        imageUrl=image_url,
+        replies=[],
+        timestamp=datetime.now(),
+    )
 
-@router.post("/thread/{thread_id}/reply")
+    result = await forum_collection.insert_one(
+        thread.model_dump(by_alias=True, exclude_none=True)
+    )
+
+
+    response_thread = thread.model_dump()
+    response_thread["id"] = str(result.inserted_id)
+    
+    if "_id" in response_thread:
+        del response_thread["_id"]
+
+    return JSONResponse(status_code=200, content={"status": "success", "thread": jsonable_encoder(response_thread)})
+
+
+@router.post("/reply")
 async def add_reply(
-    thread_id: str,
-    authorId: str = Form(...),
-    authorName: str = Form(...),
-    avatarUrl: str = Form(...),
+    thread_id: str = Form(...),
+    user_id: str = Form(...),
     content: str = Form(...),
 ):
+    """Add a reply to a thread."""
+
     thread = await forum_collection.find_one({"_id": ObjectId(thread_id)})
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    reply = {
-        "id": str(ObjectId()),
-        "author": {
-            "id": authorId,
-            "name": authorName,
-            "avatarUrl": avatarUrl
-        },
-        "content": content,
-        "timestamp": datetime.now(),
-    }
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    reply_author = ForumAuthor(
+        user_id=str(user["_id"]),
+        name=f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
+        avatarUrl=None,
+    )
+
+    reply = ForumReply(
+        id=str(ObjectId()),
+        author=reply_author,
+        role=user.get("role", "student"),
+        content=content,
+        timestamp=datetime.now(),
+    )
 
     await forum_collection.update_one(
         {"_id": ObjectId(thread_id)},
-        {"$push": {"replies": reply}}
+        {"$push": {"replies": reply.model_dump(by_alias=True, exclude_none=True)}},
     )
 
-    return reply
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "reply": jsonable_encoder(reply)}
+    )
 
-@router.delete("/thread/{thread_id}")
-async def delete_thread(thread_id: str, authorId: str):
+@router.get("/{thread_id}")
+async def get_thread(thread_id: str):
+    """Fetch a single thread by ID."""
     thread = await forum_collection.find_one({"_id": ObjectId(thread_id)})
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
-
-    if thread["author"]["id"] != authorId:
-        raise HTTPException(status_code=403, detail="You can only delete your own threads")
-
-    await forum_collection.delete_one({"_id": ObjectId(thread_id)})
-    return JSONResponse({"message": "Thread deleted successfully"})
+    return serialize_doc(thread)

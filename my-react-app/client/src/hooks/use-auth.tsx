@@ -4,7 +4,7 @@ import { AuthService } from "@/lib/auth";
 import { jwtDecode } from "jwt-decode";
 
 interface AuthUser {
-  user_id?: string
+  user_id?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -12,6 +12,7 @@ interface AuthUser {
   token?: string;
   password?: string;
   approval_status?: string;
+  avatar?: string;
 }
 
 interface AuthContextType {

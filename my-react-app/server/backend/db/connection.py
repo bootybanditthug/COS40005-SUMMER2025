@@ -10,3 +10,10 @@ approvals_collection = db["approvals"]
 annotations_collection = db["annotations"]
 versions_collection = db["annotation_versions"]
 forum_collection = db["forum"]
+
+# ===== NEW collections =====
+homeworks_collection = db["homeworks"]
+homework_targets_collection = db["homework_targets"]
+homework_uploads_collection = db["homework_uploads"]
+homework_questions_collection = db["homework_questions"]
+submissions_collection = db["submissions"]

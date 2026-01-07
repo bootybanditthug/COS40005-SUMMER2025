@@ -6,8 +6,6 @@ from models.models import Annotation, AnnotationVersion
 
 router = APIRouter(prefix="/annotations", tags=["Annotations"])
 
-
-# --- Save a new annotation (optional direct save) ---
 @router.post("/")
 async def save_annotation(annotation: Annotation):
     annotation_dict = annotation.model_dump()
@@ -27,14 +25,12 @@ async def get_annotations(case_id: str):
     return annotations
 
 
-# --- Save a version snapshot for a specific user + case ---
 @router.post("/version")
 async def save_annotation_version(version: AnnotationVersion):
     version_dict = version.model_dump()
     case_id = version_dict["caseId"]
     user_id = version_dict["userId"]
 
-    # ✅ Find latest version number for this user + case
     last_version = await versions_collection.find_one(
         {"caseId": case_id, "userId": user_id},
         sort=[("version", -1)]
@@ -53,7 +49,6 @@ async def save_annotation_version(version: AnnotationVersion):
     }
 
 
-# --- Get all versions for a given user + case ---
 @router.get("/version/{case_id}/{user_id}")
 async def get_annotation_versions(case_id: str, user_id: str):
     versions = await versions_collection.find(

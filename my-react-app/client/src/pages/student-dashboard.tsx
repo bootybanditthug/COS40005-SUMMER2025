@@ -183,7 +183,6 @@ export default function StudentDashboard() {
     { id: "annotations", label: "My Annotations", icon: Edit },
     { id: "collaboration", label: "Forums", icon: Users },
     { id: "progress", label: "Progress", icon: ChartLine },
-    { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
   const handleLogout = () => {
@@ -268,7 +267,7 @@ export default function StudentDashboard() {
                   e.stopPropagation();
                   setShowProfileMenu((v) => !v);
                 }}
-                className="focus:outline-none"
+                className="flex items-center space-x-2 focus:outline-none hover:opacity-80 transition"
                 aria-haspopup="menu"
                 aria-expanded={showProfileMenu}
               >
@@ -277,10 +276,10 @@ export default function StudentDashboard() {
                   alt="Student Avatar"
                   className="w-8 h-8 rounded-full border-2 border-primary"
                 />
+                <span className="text-sm font-medium" data-testid="text-username">
+                  {user.firstName} {user.lastName}
+                </span>
               </button>
-              <span className="text-sm font-medium" data-testid="text-username">
-                {user.firstName} {user.lastName}
-              </span>
 
               {showProfileMenu && (
                 <div onClick={(e) => e.stopPropagation()}>
@@ -288,7 +287,6 @@ export default function StudentDashboard() {
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </header>
@@ -306,8 +304,8 @@ export default function StudentDashboard() {
                   key={item.id}
                   variant="ghost"
                   className={`w-full justify-start hover:bg-transparent ${isActive
-                      ? "text-primary hover:text-primary"
-                      : "text-foreground hover:text-foreground"
+                    ? "text-primary hover:text-primary"
+                    : "text-foreground hover:text-foreground"
                     }`}
                   onClick={() => {
                     {
@@ -345,7 +343,7 @@ export default function StudentDashboard() {
                 <StatCard label="Cases Completed" value={stats.casesCompleted} icon={CheckCircle} valueClass="text-primary" testId="stat-cases-completed" />
                 <StatCard label="Active Annotations" value={stats.activeAnnotations} icon={Edit} valueClass="text-accent" testId="stat-active-annotations" />
                 <StatCard label="Feedback Received" value={stats.feedbackReceived} icon={MessageCircle} valueClass="text-yellow-500" testId="stat-feedback-received" />
-                <StatCard label="Study Streak (days)" value={stats.studyStreakDays} icon={Flame} valueClass="text-orange-500" testId="stat-study-streak" />
+                <StatCard label="Average Score" value={`${Math.round(stats.annotationAccuracyPct)}%`} icon={ChartLine} valueClass="text-accent" testId="stat-average-score" />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -617,6 +615,22 @@ export default function StudentDashboard() {
                       <div className="flex-1"><p className="font-medium">Received Feedback</p><p className="text-sm text-muted-foreground">4 hours ago - Dr. Smith reviewed your work</p></div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          {activeView === "settings" && (
+            <div className="p-6 space-y-6" data-testid="view-settings">
+              <h2 className="text-2xl font-bold mb-4">Account Settings</h2>
+
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Manage your profile information.</p>
+                  </div>
+                  <Button onClick={() => setLocation("/settings")} className="w-full">
+                    Open Settings Page
+                  </Button>
                 </CardContent>
               </Card>
             </div>

@@ -4,26 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings, Palette, UserRound } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter"; // Added this import for redirect
 
 export default function ProfileMenu() {
   const { user, logout, isLoading, updateUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const [, setLocation] = useLocation(); // Added this for setting location
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
 
@@ -52,7 +41,6 @@ export default function ProfileMenu() {
         title: "Success",
         description: "Your account settings have been updated.",
       });
-      setIsSettingsOpen(false);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -89,70 +77,16 @@ export default function ProfileMenu() {
 
           {/* Menu */}
           <div className="space-y-2">
-            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-sm"
-                >
-                  <Settings className="h-4 w-4 mr-2" /> Account settings
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Account settings</DialogTitle>
-                  <DialogDescription>
-                    Make changes to your account here. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="firstName" className="text-right">
-                      First Name
-                    </Label>
-                    <Input
-                      id="firstName"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="lastName" className="text-right">
-                      Last Name
-                    </Label>
-                    <Input
-                      id="lastName"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      value={user.email || ""}
-                      disabled
-                      className="col-span-3"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant="ghost">
-                      Cancel
-                    </Button>
-                  </DialogClose>
-                  <Button type="submit" onClick={handleSaveSettings}>
-                    Save changes
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            {/* Account settings button to navigate to /settings */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-sm"
+              onClick={() => setLocation("/settings")} // Redirect to settings page
+            >
+              <Settings className="h-4 w-4 mr-2" /> Account settings
+            </Button>
 
+            {/* Theme toggle */}
             <Button
               variant="ghost"
               className="w-full justify-start text-sm"
