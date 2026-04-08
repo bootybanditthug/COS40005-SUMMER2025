@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Annotation } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,6 +8,7 @@ import { Users, Eye, EyeOff, Layers } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface PeerAnnotation {
+  id: string;
   user: {
     id: string;
     firstName: string;
@@ -22,8 +23,8 @@ interface PeerAnnotation {
 interface PeerComparisonProps {
   peerAnnotations: PeerAnnotation[];
   currentUserId: string;
-  onToggleUserAnnotations: (userId: string, visible: boolean) => void;
-  onSelectForComparison: (userId: string) => void;
+  onToggleUserAnnotations: (entryId: string, visible: boolean) => void;
+  onSelectForComparison: (entryId: string) => void;
   onComparisonModeChange?: (mode: "overlay" | "side-by-side") => void;
 }
 
@@ -36,40 +37,41 @@ export default function PeerComparison({
 }: PeerComparisonProps) {
   const [visibleUsers, setVisibleUsers] = useState<Set<string>>(
     new Set([
-      currentUserId,
-      ...peerAnnotations.filter((peer) => peer.visible).map((peer) => peer.user.id),
+      ...peerAnnotations.filter((peer) => peer.visible).map((peer) => peer.id),
     ])
   );
   const [comparisonMode, setComparisonMode] = useState<"overlay" | "side-by-side">("overlay");
 
-  const handleToggleUser = (userId: string) => {
+  useEffect(() => {
+    setVisibleUsers(new Set(peerAnnotations.filter((peer) => peer.visible).map((peer) => peer.id)));
+  }, [peerAnnotations]);
+
+  const handleToggleUser = (entryId: string) => {
     const newVisibleUsers = new Set(visibleUsers);
-    if (newVisibleUsers.has(userId)) {
-      newVisibleUsers.delete(userId);
+    if (newVisibleUsers.has(entryId)) {
+      newVisibleUsers.delete(entryId);
     } else {
-      newVisibleUsers.add(userId);
+      newVisibleUsers.add(entryId);
     }
     setVisibleUsers(newVisibleUsers);
-    onToggleUserAnnotations(userId, !visibleUsers.has(userId));
+    onToggleUserAnnotations(entryId, !visibleUsers.has(entryId));
   };
 
   const handleSelectAll = () => {
-    const allUserIds = peerAnnotations.map((pa) => pa.user.id);
-    setVisibleUsers(new Set(allUserIds));
-    allUserIds.forEach((userId) => {
-      if (!visibleUsers.has(userId)) {
-        onToggleUserAnnotations(userId, true);
+    const allEntryIds = peerAnnotations.map((pa) => pa.id);
+    setVisibleUsers(new Set(allEntryIds));
+    allEntryIds.forEach((entryId) => {
+      if (!visibleUsers.has(entryId)) {
+        onToggleUserAnnotations(entryId, true);
       }
     });
   };
 
   const handleDeselectAll = () => {
-    visibleUsers.forEach((userId) => {
-      if (userId !== currentUserId) {
-        onToggleUserAnnotations(userId, false);
-      }
+    visibleUsers.forEach((entryId) => {
+      onToggleUserAnnotations(entryId, false);
     });
-    setVisibleUsers(new Set([currentUserId]));
+    setVisibleUsers(new Set());
   };
 
   const visibleCount = visibleUsers.size;
@@ -163,12 +165,12 @@ export default function PeerComparison({
             </div>
           ) : (
             peerAnnotations.map((peerAnnotation) => {
-              const isVisible = visibleUsers.has(peerAnnotation.user.id);
+              const isVisible = visibleUsers.has(peerAnnotation.id);
               const isCurrentUser = peerAnnotation.user.id === currentUserId;
 
               return (
                 <Card
-                  key={peerAnnotation.user.id}
+                  key={peerAnnotation.id}
                   className={`p-3 transition-all ${
                     isVisible ? "border-primary" : "border-border"
                   }`}
@@ -176,7 +178,7 @@ export default function PeerComparison({
                   <div className="flex items-start gap-3">
                     <Checkbox
                       checked={isVisible}
-                      onCheckedChange={() => handleToggleUser(peerAnnotation.user.id)}
+                      onCheckedChange={() => handleToggleUser(peerAnnotation.id)}
                       disabled={isCurrentUser}
                     />
                     <div className="flex-1 min-w-0">
@@ -226,7 +228,7 @@ export default function PeerComparison({
                         size="sm"
                         variant="outline"
                         className="w-full mt-2 text-xs"
-                        onClick={() => onSelectForComparison(peerAnnotation.user.id)}
+                        onClick={() => onSelectForComparison(peerAnnotation.id)}
                       >
                         {isVisible ? (
                           <>

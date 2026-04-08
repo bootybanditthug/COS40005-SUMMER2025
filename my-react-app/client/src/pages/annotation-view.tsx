@@ -60,6 +60,7 @@ type IndexedSubmission = {
 };
 
 type PeerCompareEntry = {
+  id: string;
   user: {
     id: string;
     firstName: string;
@@ -201,7 +202,7 @@ export default function AnnotationView() {
   }, [user?.role, user?.user_id, hw?.id, caseId, submission?.updated_at, submission?.status, submission?.score]);
 
   useEffect(() => {
-    if (user?.role !== "student" || isQnAStudentMode || !user?.user_id || !hw?.id || !caseId) {
+    if (user?.role !== "student" || isQnAStudentMode || !user?.user_id || !caseId) {
       setPeerCompareEntries([]);
       setSelectedPeerId("");
       return;
@@ -216,94 +217,122 @@ export default function AnnotationView() {
         const userById = new Map<string, any>();
         if (Array.isArray(usersList)) {
           for (const u of usersList) {
-            const uid = String(u?.id || "");
+            const uid = String(u?.id || u?.user_id || "");
             if (uid) userById.set(uid, u);
           }
         }
 
         const resolvePeerIdentity = (peerId: string) => {
           const userInfo = userById.get(String(peerId));
+          const normalizedRole = String(userInfo?.role || "student").trim().toLowerCase();
+          const role: "student" | "instructor" =
+            normalizedRole === "instructor" || normalizedRole === "admin"
+              ? "instructor"
+              : "student";
           return {
             firstName: userInfo?.firstName || "Peer",
             lastName: userInfo?.lastName || String(peerId).slice(-4),
-            role: (userInfo?.role || "student") as "student" | "instructor",
+            role,
           };
         };
 
-        const res = await fetch(`${API_BASE}/api/instructor/submissions`);
-        if (!res.ok) return;
-        const rows = await res.json();
-        if (!Array.isArray(rows)) return;
+        const normalizeAnnotations = (value: any) => {
+          if (Array.isArray(value)) return value;
+          if (typeof value === "string") {
+            try {
+              const parsed = JSON.parse(value);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        };
 
-        const latestByStudent = new Map<string, any>();
-        for (const row of rows) {
-          const sameHomework = String(row?.homework_id || "") === String(hw.id);
+        const toTimestamp = (value: any) => {
+          const ts = new Date(value ?? 0).getTime();
+          return Number.isFinite(ts) ? ts : 0;
+        };
+
+        const entryById = new Map<string, PeerCompareEntry>();
+
+        const res = await fetch(`${API_BASE}/api/instructor/submissions`);
+        const rows = res.ok ? await res.json() : [];
+
+        const addEntry = (entry: PeerCompareEntry) => {
+          const existing = entryById.get(entry.id);
+          if (!existing || new Date(entry.createdAt).getTime() >= new Date(existing.createdAt).getTime()) {
+            entryById.set(entry.id, entry);
+          }
+        };
+
+        for (const row of Array.isArray(rows) ? rows : []) {
           const sameCase = String(row?.case_id || "") === String(caseId);
           const isOtherStudent = String(row?.student_id || "") !== String(user.user_id);
-          const hasAnnotations = Array.isArray(row?.annotations) && row.annotations.length > 0;
-          if (!sameHomework || !sameCase || !isOtherStudent || !hasAnnotations) continue;
+          const annotations = normalizeAnnotations(row?.annotations);
+          const hasAnnotations = annotations.length > 0;
+          if (!sameCase || !isOtherStudent || !hasAnnotations) continue;
 
-          const sid = String(row.student_id);
-          const current = latestByStudent.get(sid);
-          const currentTs = new Date(current?.updated_at ?? current?.created_at ?? 0).getTime();
-          const nextTs = new Date(row?.updated_at ?? row?.created_at ?? 0).getTime();
-          if (!current || nextTs >= currentTs) {
-            latestByStudent.set(sid, row);
-          }
-        }
+          const sid = String(row.student_id || "unknown");
+          const identity = resolvePeerIdentity(sid);
+          const createdAt = row?.updated_at ?? row?.created_at ?? new Date().toISOString();
+          const entryId = `submission:${String(row?.id || `${sid}:${toTimestamp(createdAt)}`)}`;
 
-        let entries: PeerCompareEntry[] = Array.from(latestByStudent.values()).map((row, idx) => {
-          const studentId = String(row.student_id || "unknown");
-          const identity = resolvePeerIdentity(studentId);
-          return {
+          addEntry({
+            id: entryId,
             user: {
-              id: studentId,
+              id: sid,
               firstName: identity.firstName,
               lastName: identity.lastName,
               role: identity.role,
             },
-            annotations: Array.isArray(row.annotations) ? row.annotations : [],
-            color: PEER_COLORS[idx % PEER_COLORS.length],
+            annotations,
+            color: PEER_COLORS[Math.abs(sid.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % PEER_COLORS.length],
             visible: false,
-            createdAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-          };
-        });
-
-        if (entries.length === 0) {
-          const versionsRes = await fetch(`${API_BASE}/annotations/version/case/${encodeURIComponent(caseId)}`);
-          if (versionsRes.ok) {
-            const versionRows = await versionsRes.json();
-            if (Array.isArray(versionRows)) {
-              const peerVersionRows = versionRows.filter((row: any) => {
-                const uid = String(row?.userId || "");
-                return uid && uid !== String(user.user_id) && Array.isArray(row?.annotations) && row.annotations.length > 0;
-              });
-
-              entries = peerVersionRows.map((row: any, idx: number) => {
-                const studentId = String(row.userId || "unknown");
-                const identity = resolvePeerIdentity(studentId);
-                return {
-                  user: {
-                    id: studentId,
-                    firstName: identity.firstName,
-                    lastName: identity.lastName,
-                    role: identity.role,
-                  },
-                  annotations: Array.isArray(row.annotations) ? row.annotations : [],
-                  color: PEER_COLORS[idx % PEER_COLORS.length],
-                  visible: false,
-                  createdAt: row.createdAt ?? new Date().toISOString(),
-                };
-              });
-            }
-          }
+            createdAt,
+          });
         }
+
+        const versionsRes = await fetch(`${API_BASE}/annotations/version/case/${encodeURIComponent(caseId)}`);
+        const versionRows = versionsRes.ok ? await versionsRes.json() : [];
+        for (const row of Array.isArray(versionRows) ? versionRows : []) {
+          const sid = String(row?.userId || row?.user_id || "");
+          if (!sid || sid === String(user.user_id)) continue;
+
+          const identity = resolvePeerIdentity(sid);
+          if (identity.role !== "student") continue;
+
+          const annotations = normalizeAnnotations(row?.annotations);
+          if (annotations.length === 0) continue;
+
+          const createdAt = row?.updatedAt ?? row?.createdAt ?? new Date().toISOString();
+          const baseVersionId = String(row?.id || row?._id || row?.version || "").trim();
+          const entryId = `version:${baseVersionId || `${sid}:${toTimestamp(createdAt)}`}`;
+
+          addEntry({
+            id: entryId,
+            user: {
+              id: sid,
+              firstName: identity.firstName,
+              lastName: identity.lastName,
+              role: identity.role,
+            },
+            annotations,
+            color: PEER_COLORS[Math.abs(sid.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % PEER_COLORS.length],
+            visible: false,
+            createdAt,
+          });
+        }
+
+        const entries: PeerCompareEntry[] = Array.from(entryById.values()).sort(
+          (a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt)
+        );
 
         if (!cancelled) {
           setPeerCompareEntries(entries);
           setSelectedPeerId((prev) => {
-            if (prev && entries.some((entry) => entry.user.id === prev)) return prev;
-            return entries[0]?.user.id ?? "";
+            if (prev && entries.some((entry) => entry.id === prev)) return prev;
+            return entries[0]?.id ?? "";
           });
         }
       } catch {
@@ -578,19 +607,19 @@ export default function AnnotationView() {
     return !accepted;
   });
 
-  const handlePeerVisibilityToggle = (userId: string, visible: boolean) => {
+  const handlePeerVisibilityToggle = (entryId: string, visible: boolean) => {
     setPeerCompareEntries((prev) =>
       prev.map((peer) =>
-        peer.user.id === userId ? { ...peer, visible } : peer
+        peer.id === entryId ? { ...peer, visible } : peer
       )
     );
   };
 
-  const handlePeerSelectForComparison = (userId: string) => {
-    setSelectedPeerId(userId);
+  const handlePeerSelectForComparison = (entryId: string) => {
+    setSelectedPeerId(entryId);
     setPeerCompareEntries((prev) =>
       prev.map((peer) =>
-        peer.user.id === userId ? { ...peer, visible: true } : peer
+        peer.id === entryId ? { ...peer, visible: true } : peer
       )
     );
   };
@@ -1020,7 +1049,7 @@ export default function AnnotationView() {
       setSelectedPeerId(peer.id);
       setPeerCompareEntries((prev) =>
         prev.map((entry) =>
-          entry.user.id === peer.id ? { ...entry, visible: true } : entry
+          entry.id === peer.id ? { ...entry, visible: true } : entry
         )
       );
     }
@@ -1028,10 +1057,10 @@ export default function AnnotationView() {
 
   const visiblePeerAnnotations = peerCompareEntries.filter((entry) => entry.visible);
   const selectedPeerAnnotations =
-    peerCompareEntries.find((entry) => entry.user.id === selectedPeerId)?.annotations || [];
+    peerCompareEntries.find((entry) => entry.id === selectedPeerId)?.annotations || [];
 
   const comparePeers = peerCompareEntries.map((entry) => ({
-    id: entry.user.id,
+    id: entry.id,
     caseId,
     authorId: entry.user.id,
     authorName: `${entry.user.firstName} ${entry.user.lastName}`,
